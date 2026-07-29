@@ -65,7 +65,7 @@ echo "$KBUILD_HOST"	# Output the value of KBUILD_HOST
 # ---- Prompt for Compiler ----
 echo -e "\n${YELLOW}Choose your weapon for compilation:${NC}"
 echo -e "${PINK}1.👉 BEST EVA GCC (Bleeding Edge)${NC}"
-echo -e "${GREEN}2.👉 NEUTRON CLANG (God Mode)${NC}"
+echo -e "${GREEN}2.👉 SAKURA CLANG (God Mode)${NC}"
 read -t 5 -rp "Compiler [1]: " COMPILER_CHOICE
 COMPILER_CHOICE="${COMPILER_CHOICE:-1}"
 
@@ -82,26 +82,26 @@ TARGET_OUT="$(pwd)/../SAKURA_OUT"
 TARGET_DTC_FLAGS="-q"
 
 [ "$COMPILER_CHOICE" == "1" ] && {
-        echo -e "${PINK}Switching to Eva GCC... Let's make it bleed~${NC}"
-        export PATH="$(pwd)/../Madara-Built/EVA/bin:$PATH"
-        export CROSS_COMPILE="aarch64-elf-"
-        export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
-        TARGET_CC="aarch64-elf-gcc"
-        TARGET_HOSTLD="aarch64-elf-ld"
-        TARGET_CROSS_COMPILE="aarch64-elf-"
-        TARGET_CLANG_TRIPLE=""
-        CC_ADDITIONAL_FLAGS="-Wno-error=unused-function CROSS_COMPILE_COMPAT=arm-linux-gnueabi- GCC_LTO=1 GRAPHITE=1"
-        } || {
-        echo -e "${GREEN}Neutron Clang engaged. Prepare for speed.${NC}"
-        export PATH="$(pwd)/../Madara-Built/NEUTRON/bin:$PATH"
-        export CLANG_TRIPLE="aarch64-linux-gnu-"
-        export CROSS_COMPILE="aarch64-linux-gnu-"
-        export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
-        TARGET_CC="clang"
-        TARGET_HOSTLD="ld.lld"
-        TARGET_CROSS_COMPILE="aarch64-linux-gnu-"
-        TARGET_CLANG_TRIPLE="aarch64-linux-gnu-"
-        CC_ADDITIONAL_FLAGS="LLVM_IAS=1 LLVM=1 -Wno-error=unused-function"
+	echo -e "${PINK}Switching to Eva GCC... Let's make it bleed~${NC}"
+	export PATH="$(pwd)/../Madara-Built/EVA/bin:$PATH"
+	export CROSS_COMPILE="aarch64-elf-"
+	export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
+	TARGET_CC="aarch64-elf-gcc"
+	TARGET_HOSTLD="aarch64-elf-ld"
+	TARGET_CROSS_COMPILE="aarch64-elf-"
+	TARGET_CLANG_TRIPLE=""
+	CC_ADDITIONAL_FLAGS="-Wno-error=unused-function CROSS_COMPILE_COMPAT=arm-linux-gnueabi- GCC_LTO=1 GRAPHITE=1"
+	} || {
+	echo -e "${GREEN}Sakura Clang engaged. Prepare for speed.${NC}"
+	export PATH="$(pwd)/../Madara-Built/SAKURA/bin:$PATH"
+	export CLANG_TRIPLE="aarch64-linux-gnu-"
+	export CROSS_COMPILE="aarch64-linux-gnu-"
+	export CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
+	TARGET_CC="clang"
+	TARGET_HOSTLD="ld.lld"
+	TARGET_CROSS_COMPILE="aarch64-linux-gnu-"
+	TARGET_CLANG_TRIPLE="aarch64-linux-gnu-"
+	CC_ADDITIONAL_FLAGS="LLVM_IAS=1 LLVM=1 -Wno-error=unused-function"
 }
 
 TARGET_COMPILER_STRING="$COMPILER_STRING"
@@ -810,15 +810,23 @@ setup_toolchains() {
 	echo -e "${YELLOW}Setting up toolchains in $TOOLCHAIN_DIR...${NC}"
 	mkdir -p "$TOOLCHAIN_DIR"
 
-	# Neutron Clang
-	[ -f "$TOOLCHAIN_DIR/NEUTRON/bin/clang" ] || {
-		echo -e "${GREEN}Downloading Neutron Clang...${NC}"
-		mkdir -p "$TOOLCHAIN_DIR/NEUTRON"
-		local VERSION=$(curl -sL https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/latest | grep -oE "tag/[0-9]+" | head -1 | cut -d/ -f2)
-		local FILE="neutron-clang-$VERSION.tar.zst"
-		wget -q --show-progress "https://github.com/Neutron-Toolchains/clang-build-catalogue/releases/download/$VERSION/$FILE" -O "$TOOLCHAIN_DIR/$FILE"
-		tar --zstd -xf "$TOOLCHAIN_DIR/$FILE" -C "$TOOLCHAIN_DIR/NEUTRON" --strip-components=1
-		rm "$TOOLCHAIN_DIR/$FILE"
+	# Sakura Clang
+	[ -f "$TOOLCHAIN_DIR/SAKURA/bin/clang" ] || {
+		echo -e "${GREEN}Downloading Sakura Clang...${NC}"
+		mkdir -p "$TOOLCHAIN_DIR/SAKURA"
+		local DOWNLOAD_URL=$(curl -sL "https://api.github.com/repos/Madara273/Sakura-Clang-Compiler/releases/tags/Sakura-Clang-R01" | grep -oP '"browser_download_url": "\K[^"]+' | head -n 1)
+		local FILE="sakura-clang-temp.tar.zst"
+
+		[ -n "$DOWNLOAD_URL" ] || { echo -e "${RED}Error: Release asset not found!${NC}"; rm -rf "$TOOLCHAIN_DIR/SAKURA"; return 1; }
+
+		wget -q --show-progress -L "$DOWNLOAD_URL" -O "$TOOLCHAIN_DIR/$FILE" || {
+			echo -e "${RED}Error downloading Sakura Clang!${NC}"
+			rm -rf "$TOOLCHAIN_DIR/$FILE" "$TOOLCHAIN_DIR/SAKURA"
+			return 1
+		}
+
+		tar --zstd -xf "$TOOLCHAIN_DIR/$FILE" -C "$TOOLCHAIN_DIR/SAKURA" --strip-components=1
+		rm -f "$TOOLCHAIN_DIR/$FILE"
 	}
 
 	# Eva GCC (Fixed)
@@ -829,7 +837,7 @@ setup_toolchains() {
 		local FILE="eva-gcc-arm64-$VERSION.xz"
 		wget -q --show-progress "https://github.com/mvaisakh/gcc-build/releases/download/$VERSION/$FILE" -O "$TOOLCHAIN_DIR/$FILE"
 		tar -xf "$TOOLCHAIN_DIR/$FILE" -C "$TOOLCHAIN_DIR/EVA" --strip-components=1
-		rm "$TOOLCHAIN_DIR/$FILE"
+		rm -f "$TOOLCHAIN_DIR/$FILE"
 	}
 
 	echo -e "${GREEN}Latest toolchains are ready.${NC}"
@@ -838,8 +846,8 @@ setup_toolchains() {
 # ---- Kernel compilation function ----
 compile_kernel() {
 	[ "$COMPILER_CHOICE" == "1" ] && CURRENT_COMPILER="EVA GCC"
-	[ "$COMPILER_CHOICE" == "2" ] && CURRENT_COMPILER="Neutron Clang"
-	[ "$COMPILER_CHOICE" != "1" ] && [ "$COMPILER_CHOICE" != "2" ] && CURRENT_COMPILER="Neutron Clang"
+	[ "$COMPILER_CHOICE" == "2" ] && CURRENT_COMPILER="Sakura Clang"
+	[ "$COMPILER_CHOICE" != "1" ] && [ "$COMPILER_CHOICE" != "2" ] && CURRENT_COMPILER="Sakura Clang"
 
 	CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 
