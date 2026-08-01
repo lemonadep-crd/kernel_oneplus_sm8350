@@ -95,7 +95,7 @@ struct wma_injection_fw_error_info {
 /**
  * struct wma_injection_queue_stats - WMA injection queue statistics
  * @frames_queued: Total frames queued
- * @frames_processed: Total frames processed
+ * @frames_processed: Frames confirmed by firmware with COMPLETE_OK
  * @frames_dropped: Frames dropped due to queue overflow
  * @queue_overflows: Number of queue overflow events
  * @max_queue_depth: Maximum queue depth reached
@@ -103,6 +103,12 @@ struct wma_injection_fw_error_info {
  * @fw_errors: Number of firmware errors
  * @fw_timeouts: Number of firmware timeouts
  * @fw_retries: Number of firmware retries
+ * @command_submitted: WMI management commands accepted by the host WMI layer
+ * @tx_complete_ok: Firmware completions reporting COMPLETE_OK
+ * @tx_complete_no_ack: Firmware completions reporting COMPLETE_NO_ACK
+ * @tx_complete_discard: Firmware completions reporting DISCARD
+ * @tx_timeout: Submitted commands with no completion before the timeout
+ * @peer_not_found: Unicast frames rejected because no associated peer exists
  * @last_fw_error: Information about last firmware error
  */
 struct wma_injection_queue_stats {
@@ -115,6 +121,12 @@ struct wma_injection_queue_stats {
 	uint64_t fw_errors;
 	uint64_t fw_timeouts;
 	uint64_t fw_retries;
+	uint64_t command_submitted;
+	uint64_t tx_complete_ok;
+	uint64_t tx_complete_no_ack;
+	uint64_t tx_complete_discard;
+	uint64_t tx_timeout;
+	uint64_t peer_not_found;
 	struct wma_injection_fw_error_info last_fw_error;
 };
 
@@ -416,6 +428,37 @@ static inline QDF_STATUS wma_handle_injection_fw_response(tp_wma_handle wma_hand
 							   uint32_t status)
 {
 	return QDF_STATUS_E_NOSUPPORT;
+}
+
+static inline QDF_STATUS
+wma_handle_firmware_injection_error(tp_wma_handle wma_handle,
+				     uint32_t error_code,
+				     uint8_t vdev_id,
+				     struct inject_frame_req *req)
+{
+	return QDF_STATUS_E_NOSUPPORT;
+}
+
+static inline QDF_STATUS
+wma_retry_injection_frame(tp_wma_handle wma_handle,
+			  struct inject_frame_req *req,
+			  uint8_t vdev_id,
+			  enum wma_injection_fw_error_type error_type)
+{
+	return QDF_STATUS_E_NOSUPPORT;
+}
+
+static inline QDF_STATUS
+wma_sync_firmware_injection_state(tp_wma_handle wma_handle,
+				   uint8_t vdev_id)
+{
+	return QDF_STATUS_E_NOSUPPORT;
+}
+
+static inline enum wma_injection_fw_error_type
+wma_translate_fw_injection_error(uint32_t fw_error_code)
+{
+	return WMA_INJECTION_FW_ERROR_NONE;
 }
 
 #endif /* FEATURE_FRAME_INJECTION_SUPPORT */
